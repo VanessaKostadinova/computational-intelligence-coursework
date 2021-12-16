@@ -76,7 +76,7 @@ public class VectorMaths {
                         multiplyScalar(new Vector(pos, globalBest), coefficientFi2 * r2)));
     }
 
-    public static void clamp(Vector v, double maxLength) {
+    public static Vector clamp(Vector v, double maxLength) {
         double addedSquares = 0;
         for (double vectorPoint : v.vectorPoints) {
             addedSquares += Math.pow(vectorPoint, 2D);
@@ -93,5 +93,7 @@ public class VectorMaths {
         }
 
         v.updateVector(vectorPoints);
+
+        return v;
     }
 }

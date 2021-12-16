@@ -4,7 +4,9 @@ import app.CarPricePrediction;
 
 import java.util.Arrays;
 
+import static swarm.VectorMaths.clamp;
 import static swarm.VectorMaths.generatePosition;
+
 
 public class SwarmHelper {
     public static SwarmParticle[] generateRandomSwarm(CarPricePrediction carPricePrediction) {
@@ -17,7 +19,7 @@ public class SwarmHelper {
                 generatedPosition = generatePosition(CarPricePrediction.bounds());
             } while (!carPricePrediction.is_valid(generatedPosition));
 
-            particles[i] = new SwarmParticle(generatedPosition, new Vector(generatedPosition));
+            particles[i] = new SwarmParticle(generatedPosition, clamp(new Vector(generatePosition(CarPricePrediction.bounds())), 0.1D));
         }
         return particles;
     }

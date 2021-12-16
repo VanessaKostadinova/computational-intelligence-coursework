@@ -2,12 +2,11 @@ package swarm;
 
 import app.CarPricePrediction;
 
-import java.util.Arrays;
 import java.util.Random;
 
 import static swarm.VectorMaths.*;
 
-public class SwarmNetworkNovel {
+public class SwarmNetworkNovel implements SwarmNetwork {
     private final SwarmParticle[] particles;
     private final CarPricePrediction carPricePrediction;
     private static final double coefficientFi = 1.1193D;
@@ -15,40 +14,14 @@ public class SwarmNetworkNovel {
     private final Random random;
     private double[] globalBestPosition;
     private Double globalBestValue;
+    private int totalIterations;
+    private int iterationsSinceLastBest;
 
     public enum Type {
         EXPLORATION, EXPLOITATION
     }
 
     private Type type;
-
-    public SwarmNetworkNovel(CarPricePrediction carPricePrediction) {
-        this.carPricePrediction = carPricePrediction;
-        this.globalBestPosition = null;
-        this.globalBestValue = null;
-        this.particles = new SwarmParticle[20 + (int) Math.sqrt(CarPricePrediction.bounds().length)];
-        this.random = new Random();
-        this.type = Type.EXPLORATION;
-
-        //generate all random particles
-        for (int i = 0; i < particles.length; i++) {
-            double[] generatedPosition;
-
-            do {
-                generatedPosition = generatePosition(CarPricePrediction.bounds());
-            } while (!carPricePrediction.is_valid(generatedPosition));
-
-            double generatedPositionValue = Math.abs(carPricePrediction.evaluate(generatedPosition));
-
-            //update best
-            if (globalBestValue == null || generatedPositionValue < globalBestValue) {
-                globalBestPosition = generatedPosition;
-                globalBestValue = generatedPositionValue;
-            }
-
-            particles[i] = new SwarmParticle(generatedPosition, new Vector(generatedPosition));
-        }
-    }
 
     public SwarmNetworkNovel(CarPricePrediction carPricePrediction, SwarmParticle[] swarmParticles, Random random) {
         this.carPricePrediction = carPricePrediction;
@@ -57,6 +30,8 @@ public class SwarmNetworkNovel {
         this.particles = swarmParticles;
         this.random = random;
         this.type = Type.EXPLORATION;
+        this.totalIterations = 0;
+        this.iterationsSinceLastBest = 0;
 
         //generate all random particles
         for (SwarmParticle swarmParticle : swarmParticles) {
@@ -71,15 +46,16 @@ public class SwarmNetworkNovel {
         }
     }
 
-    public void changeType(Type type) {
+    private void changeType(Type type) {
         this.type = type;
         for (int i = 0; i < particles.length; i++) {
-            particles[i] = new SwarmParticle(generatePosition(CarPricePrediction.bounds()), new Vector(generatePosition(CarPricePrediction.bounds())));
-            //s.setBestPosition(s.getCurrentPosition());
+            particles[i] = new SwarmParticle(generatePosition(CarPricePrediction.bounds()), clamp(new Vector(generatePosition(CarPricePrediction.bounds())), 0.1D));
         }
     }
 
     public void update() {
+        totalIterations++;
+
         for (SwarmParticle s : particles) {
             Vector v = generateNewVelocityVector(
                     s.getVelocity(),
@@ -96,13 +72,13 @@ public class SwarmNetworkNovel {
             if (type == Type.EXPLORATION) {
                 clamp = 0.2D;
             } else {
-                clamp = 0.1D;
+                clamp = 1.2D;
             }
             clamp(v, clamp);
             double[] newPos = addVectorToCoordinate(v, s.getCurrentPosition());
 
             if (type == Type.EXPLORATION) {
-                if (calculateDistance(newPos, globalBestPosition) < 0.01) {
+                if (calculateDistance(newPos, globalBestPosition) < 1) {
                     newPos = generatePosition(CarPricePrediction.bounds());
                     while (!carPricePrediction.is_valid(newPos)) {
                         newPos = generatePosition(CarPricePrediction.bounds());
@@ -122,12 +98,14 @@ public class SwarmNetworkNovel {
                 if (newValue < globalBestValue) {
                     globalBestPosition = newPos;
                     globalBestValue = newValue;
-
-                    //System.out.println(globalBestValue);
-                    //System.out.println(Arrays.toString(globalBestPosition));
-                    //System.out.println("-----");
+                    iterationsSinceLastBest = 0;
                 }
             }
+        }
+        iterationsSinceLastBest++;
+
+        if (type == Type.EXPLORATION && totalIterations >= 1000 && iterationsSinceLastBest > totalIterations / 2) {
+            changeType(Type.EXPLOITATION);
         }
     }
 
@@ -135,17 +113,5 @@ public class SwarmNetworkNovel {
         double[] returnPos = new double[globalBestPosition.length];
         System.arraycopy(globalBestPosition, 0, returnPos, 0, returnPos.length);
         return returnPos;
-    }
-
-    public boolean isExploitive(){
-        return this.type == Type.EXPLOITATION;
-    }
-
-    public double getGlobalBestValue() {
-        return globalBestValue;
-    }
-
-    public SwarmParticle[] getParticles() {
-        return Arrays.copyOf(particles, particles.length);
     }
 }

@@ -2,13 +2,12 @@ package swarm;
 
 import app.CarPricePrediction;
 
-import java.util.Arrays;
 import java.util.Random;
 
 import static swarm.VectorMaths.*;
 import static swarm.VectorMaths.generatePosition;
 
-public class SwarmNetworkSimple {
+public class SwarmNetworkBaseline implements SwarmNetwork{
     private final SwarmParticle[] particles;
     private final CarPricePrediction carPricePrediction;
     private static final double coefficientFi = 1.1193D;
@@ -17,34 +16,7 @@ public class SwarmNetworkSimple {
     private double[] globalBestPosition;
     private Double globalBestValue;
 
-    public SwarmNetworkSimple(CarPricePrediction carPricePrediction) {
-        this.carPricePrediction = carPricePrediction;
-        this.globalBestPosition = null;
-        this.globalBestValue = null;
-        this.particles = new SwarmParticle[20 + (int) Math.sqrt(CarPricePrediction.bounds().length)];
-        this.random = new Random();
-
-        //generate all random particles
-        for (int i = 0; i < particles.length; i++) {
-            double[] generatedPosition;
-
-            do {
-                generatedPosition = generatePosition(CarPricePrediction.bounds());
-            } while (!carPricePrediction.is_valid(generatedPosition));
-
-            double generatedPositionValue = Math.abs(carPricePrediction.evaluate(generatedPosition));
-
-            //update best
-            if (globalBestValue == null || generatedPositionValue < globalBestValue) {
-                globalBestPosition = generatedPosition;
-                globalBestValue = generatedPositionValue;
-            }
-
-            particles[i] = new SwarmParticle(generatedPosition, new Vector(generatedPosition));
-        }
-    }
-
-    public SwarmNetworkSimple(CarPricePrediction carPricePrediction, SwarmParticle[] swarmParticles, Random random) {
+    public SwarmNetworkBaseline(CarPricePrediction carPricePrediction, SwarmParticle[] swarmParticles, Random random) {
         this.carPricePrediction = carPricePrediction;
         this.globalBestPosition = null;
         this.globalBestValue = null;
@@ -92,10 +64,6 @@ public class SwarmNetworkSimple {
                 if (newValue < globalBestValue) {
                     globalBestPosition = newPos;
                     globalBestValue = newValue;
-
-                    //System.out.println(globalBestValue);
-                    //System.out.println(Arrays.toString(globalBestPosition));
-                    //System.out.println("-----");
                 }
             }
         }
